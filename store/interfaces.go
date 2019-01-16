@@ -18,6 +18,28 @@ import (
 	"github.com/klmitch/mathom/object"
 )
 
+// ObjIter is an interface for iterating over objects in the database.
+type ObjIter interface {
+	// Item retrieves the current item from the iterator.  This
+	// includes the object key, the object data, and the object
+	// metadata.
+	Item() ([]byte, []byte, object.ObjMeta)
+
+	// Next advances the iterator to the next item.
+	Next()
+}
+
+// PtrIter is an interface for iterating over pointers in the
+// database.
+type PtrIter interface {
+	// Item retrieves the current item from the iterator.  This
+	// includes the item name and the key to which it points.
+	Item() (string, []byte)
+
+	// Next advances the iterator to the next item.
+	Next()
+}
+
 // Store is an interface for all possible mathom storage systems.  It
 // has distinct operations for objects in the store--typically keyed
 // by their checksum--and pointers, which allow human-readable names
@@ -25,27 +47,37 @@ import (
 // can also be wrapped by objects which modify it in some fashion,
 // such as encrypting the data in the store.
 type Store interface {
-	// Tests if an object with the specified key exists.
+	// ObjExists tests if an object with the specified key exists.
 	ObjExists(key []byte) bool
 
-	// Creates an object with the specified key and data.
-	// Additional metadata describes the type of the object.
+	// ObjCreate creates an object with the specified key and
+	// data.  Additional metadata describes the type of the
+	// object.
 	ObjCreate(key, data []byte, meta object.ObjMeta) error
 
-	// Get an object with the specified key.  The data and
+	// ObjGet gets an object with the specified key.  The data and
 	// metadata are returned.
 	ObjGet(key []byte) ([]byte, object.ObjMeta, error)
 
-	// Delete an object with the specified key.
+	// ObjDelete deletes an object with the specified key.
 	ObjDelete(key []byte) error
 
-	// Create or update a named pointer, mapping it to the
-	// specified key.
-	PtrSet(name, key []byte) error
+	// IterObjs iterates over all objects in the store.  It is not
+	// safe to modify the store during iteration.
+	IterObjs() ObjIter
 
-	// Get the named pointer and return the key it points to.
-	PtrGet(name []byte) ([]byte, error)
+	// PtrSet creates or updates a named pointer, mapping it to
+	// the specified key.
+	PtrSet(name string, key []byte) error
 
-	// Delete a pointer.
-	PtrDelete(name []byte) error
+	// PtrGet gets the named pointer and return the key it points
+	// to.
+	PtrGet(name string) ([]byte, error)
+
+	// PtrDelete deletes a pointer.
+	PtrDelete(name string) error
+
+	// IterPtrs iterates over all pointers in the store.  It is
+	// not safe to modify the store during iteration.
+	IterPtrs() PtrIter
 }
